@@ -1,4 +1,23 @@
 let csvData = 'http://localhost:8888/geo/data/gps_2021-09-15_Throop_Loop.csv';
+
+let dataTypes = [
+  {"include": false, "name": "Particulates <1um ug/m3", "column": "PMS 1.0", "colour": "#5946B2"},
+  {"include": false, "name": "Particulates <2.5um ug/m3", "column": "PMS 2.5", "colour": "#9C51B6"},
+  {"include": true, "name": "Particulates <10um ug/m3", "column": "PMS 10.0", "colour": "#E936A7"},
+  {"include": false, "name": "Carbon Monoxide (CO)", "column": "Gas Reducing", "colour": "#8FD400"},
+  {"include": true, "name": "Nitrogen Dioxide (NO2)", "column": "Gas Oxidizing", "colour": "#319177"},
+  {"include": false, "name": "Ammonia (NH3)", "column": "Gas NH3", "colour": "#4A646C"},
+  {"include": false, "name": "Noise Low", "column":"Noise Low", "colour": "#000000"},
+	{"include": false, "name": "Noise Mid", "column":"Noise Mid", "colour": "#000000"},
+	{"include": false, "name": "Noise High", "column":"Noise High", "colour": "#000000"},
+	{"include": false, "name": "Noise Total", "column":"Noise Total", "colour": "#000000"},
+	{"include": false, "name": "Temperature", "column":"Temperature", "colour": "#000000"},
+	{"include": false, "name": "Humidity", "column":"Humidity", "colour": "#000000"},
+  {"include": false, "name": "Light", "column":"Lux", "colour": "#000000"},
+];
+
+const blobAlpha = 128;
+const blobMaxRadius = 24;
 let table;
 let extents;
 let centre;
@@ -58,13 +77,15 @@ function draw() {
     clear();
     // noFill();
 
-    fill(255, 0, 0);
-    stroke(255, 0, 0);
-    drawEnvironmental("PMS 10.0", 24);
-
-    fill(255, 0, 255);
-    stroke(255, 0, 255);
-    drawEnvironmental("Gas Oxidizing", 24); // Carbon Monoxide (Reducing), Nitrogen Dioxide (Oxidizing), and Ammonia (NH3)
+    for (let j = 0; j < dataTypes.length; j++) {
+      if (!dataTypes[j].include) {
+        continue;
+      }
+      print(dataTypes[j].name);
+      fill(red(dataTypes[j].colour), green(dataTypes[j].colour), blue(dataTypes[j].colour), blobAlpha);
+      stroke(red(dataTypes[j].colour), green(dataTypes[j].colour), blue(dataTypes[j].colour), blobAlpha);
+      drawEnvironmental(dataTypes[j].column);
+    }
 
     stroke(0, 0, 255);
     drawTrack();
@@ -99,9 +120,10 @@ function drawTrack() {
 }
 
 
-function drawEnvironmental(colName, maxRadius) {
+function drawEnvironmental(colName) {
   let min;
   let max = -1;
+  let maxRadius = blobMaxRadius;
   let data = [];
   let rows = table.getRowCount();
   let col = colFromName(colName);
