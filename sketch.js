@@ -28,14 +28,7 @@ let mapChanged = false;
 let moveToMode = true;
 let moveToX;
 let moveToY;
-
-// Lets change the map tiles to something with more contrast
-let options = {
-  lat: 51.476959895490396,
-  lng: 0.0,
-  zoom: 7,
-  style: "http://{s}.tile.osm.org/{z}/{x}/{y}.png"
-}
+let legend;
 
 
 function preload() {
@@ -54,8 +47,12 @@ function setup() {
   extents = getExtents();
   centre = getCentre(extents);
 
-  options.lat = centre.centreLat;
-  options.lng = centre.centreLong;
+  let options = {
+    lat: centre.centreLat,
+    lng: centre.centreLong,
+    zoom: 7,
+    style: "http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+  }
 
   // Create a canvas
   let canvas = createCanvas(windowWidth, windowHeight);
@@ -68,6 +65,22 @@ function setup() {
 
   // Only redraw when the map changes
   myMap.onChange(cbMapChanged);
+
+  setupLegend();
+}
+
+
+function setupLegend() {
+  legend = L.control({position: 'bottomleft'});
+  legend.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'legend');
+    for (let j = 0; j < dataTypes.length; j++) {
+      div.innerHTML += '<div><input type="checkbox" id="' + dataTypes[j].column.replace(' ', '-') + '"' +
+        (dataTypes[j].include ? ' checked' : '')+ '>' +
+        '<label for="' + dataTypes[j].column.replace(' ', '-') + '">' + dataTypes[j].name + '</label></div>';
+    }
+    return div;
+  };
 }
 
 
@@ -89,6 +102,8 @@ function draw() {
 
     stroke(0, 0, 255);
     drawTrack();
+
+    myMap.map.addControl(legend);
   }
 }
 
