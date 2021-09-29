@@ -1,4 +1,4 @@
-let csvData = 'http://localhost:8888/geo/data/gps_2021-09-15_Throop_Loop.csv';
+let csvData = 'http://' + location.hostname + ':8888/geo/data/gps_2021-09-15_Throop_Loop.csv';
 
 let dataTypes = [
   {"include": false, "name": "Particulates <1um ug/m3", "column": "PMS 1.0", "colour": "#5946B2"},
@@ -29,6 +29,9 @@ let moveToMode = true;
 let moveToX;
 let moveToY;
 let legend;
+let selectionChanged = false;
+let selectLastId;
+let selectLastChecked;
 
 
 function preload() {
@@ -41,7 +44,6 @@ function setup() {
   let cols = table.getColumnCount();
 
   print("csv data rows " + rows + " cols " + cols);
-  print("windowWidth " + windowWidth + " windowHeight " + windowHeight);
 
   convertLatLong();
   extents = getExtents();
@@ -70,14 +72,22 @@ function setup() {
 }
 
 
+function onClickHandler(input) {
+  selectionChanged = true;
+  selectLastId = input.id;
+  selectLastChecked = input.checked;
+}
+
+
 function setupLegend() {
-  legend = L.control({position: 'bottomleft'});
+  legend = L.control({position: 'bottomright'});
   legend.onAdd = function (map) {
     var div = L.DomUtil.create('div', 'legend');
     for (let j = 0; j < dataTypes.length; j++) {
-      div.innerHTML += '<div><input type="checkbox" id="' + dataTypes[j].column.replace(' ', '-') + '"' +
-        (dataTypes[j].include ? ' checked' : '')+ '>' +
-        '<label for="' + dataTypes[j].column.replace(' ', '-') + '">' + dataTypes[j].name + '</label></div>';
+      div.innerHTML += '<div><input type="checkbox" id="' + makeId(dataTypes[j].column) + '"' +
+        ' onclick="onClickHandler(this);"' +
+        (dataTypes[j].include ? ' checked' : '') + '>' +
+        '<label for="' + makeId(dataTypes[j].column) + '">' + dataTypes[j].name + '</label></div>';
     }
     return div;
   };
@@ -94,7 +104,6 @@ function draw() {
       if (!dataTypes[j].include) {
         continue;
       }
-      print(dataTypes[j].name);
       fill(red(dataTypes[j].colour), green(dataTypes[j].colour), blue(dataTypes[j].colour), blobAlpha);
       stroke(red(dataTypes[j].colour), green(dataTypes[j].colour), blue(dataTypes[j].colour), blobAlpha);
       drawEnvironmental(dataTypes[j].column);
@@ -104,6 +113,18 @@ function draw() {
     drawTrack();
 
     myMap.map.addControl(legend);
+  }
+
+  if (selectionChanged) {
+    selectionChanged = false;
+    for (let j = 0; j < dataTypes.length; j++) {
+      if (makeId(dataTypes[j].column) !== selectLastId) {
+        continue;
+      }
+      dataTypes[j].include = selectLastChecked;
+      break;
+    }
+    mapChanged = true;
   }
 }
 
@@ -267,4 +288,9 @@ function getExtents() {
 
 function getCentre(extents) {
   return { "centreLat": (extents.leastLat + extents.greatestLat) / 2, "centreLong": (extents.leastLong + extents.greatestLong) / 2 };
+}
+
+
+function makeId(x) {
+  return x.replace(' ', '-');
 }
