@@ -29,6 +29,7 @@ let legend;
 let selectionChanged = false;
 let selectLastId;
 let selectLastChecked;
+let popups = [];
 
 
 function preload() {
@@ -97,6 +98,7 @@ function draw() {
     clear();
     // noFill();
 
+    removePopups();
     for (let j = 0; j < dataTypes.length; j++) {
       if (!dataTypes[j].include) {
         continue;
@@ -201,8 +203,18 @@ function drawEnvironmental(colName, enviroName) {
     var html = '<p>' + enviroName + '<br />' + fmtValueSigFig(max, 4) + '<br />' + fmtTime(maxPtTime) + '</p>';
     var popup = L.popup().setLatLng([maxLat, maxLong]).setContent(html);
     popup.addTo(myMap.map);
+    popups.push(popup);
   }
 }
+
+
+function removePopups() {
+  let popup;
+  while ((popup = popups.pop())) {
+    popup.remove();
+  }
+}
+
 
 function colFromName(colName) {
   let numCols = table.getColumnCount();

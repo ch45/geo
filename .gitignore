@@ -1,6 +1,7 @@
 .vscode/
 build/
-data/gps_16*
+data/gps*.csv
+!data/gps_2021-09-15*.csv
 *.zip
 *~
 _*
