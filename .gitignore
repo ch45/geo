@@ -1,5 +1,6 @@
 .vscode/
 build/
+data/gps_16*
 *.zip
 *~
 _*
