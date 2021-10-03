@@ -2,6 +2,8 @@
 build/
 data/gps*.csv
 !data/gps_2021-09-15*.csv
+geo-enviro-2021-09-29.html
+geo-enviro-162*.html
 *.zip
 *~
 _*

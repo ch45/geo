@@ -1,4 +1,6 @@
-let csvData = 'http://' + location.hostname + ':8888/geo/data/gps_2021-09-15_Throop_Loop.csv';
+if (typeof csvData === 'undefined') {
+  var csvData = 'http://' + location.hostname + ':8888/geo/data/gps_2021-09-15_Throop_Loop.csv';
+}
 
 let dataTypes = [
   {"include": false, "name": "Particulates <1um", "column": "PMS 1.0", "colour": "#5946B2"},
