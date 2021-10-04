@@ -164,9 +164,10 @@ function drawEnvironmental(colName, enviroName) {
   let min;
   let max = -Number.MAX_VALUE;
   let maxRadius = blobMaxRadius;
-  let maxLat;
-  let maxLong;
+  let maxPtLat;
+  let maxPtLong;
   let maxPtTime;
+  let maxPtRow;
   let data = [];
   let latCol = colFromName("Latitude");
   let longCol = colFromName("Longitude");
@@ -187,9 +188,10 @@ function drawEnvironmental(colName, enviroName) {
           min = ptVal;
         }
         max = ptVal;
-        maxLat = ptLat;
-        maxLong = ptLong;
+        maxPtLat = ptLat;
+        maxPtLong = ptLong;
         maxPtTime = table.getString(r, colFromName("Time"));
+        maxPtRow = r;
       }
       if (ptVal < min) {
         min = ptVal;
@@ -197,13 +199,14 @@ function drawEnvironmental(colName, enviroName) {
     }
   }
   let step = Math.trunc(data.length / (99 + envCol) + 1);
-  for (let j = 0; j < data.length; j += step) {
-    let r = map(data[j][2], min, max, 0, maxRadius);
-    ellipse(data[j][0], data[j][1], r, r);
+  let start = maxPtRow % step;
+  for (let j = start; j < data.length; j += step) {
+    let w = map(data[j][2], min, max, 0, maxRadius);
+    ellipse(data[j][0], data[j][1], w);
   }
   if (max > -1) {
     var html = '<p>' + enviroName + '<br />' + fmtValueSigFig(max, 4) + '<br />' + fmtTime(maxPtTime) + '</p>';
-    var popup = L.popup().setLatLng([maxLat, maxLong]).setContent(html);
+    var popup = L.popup().setLatLng([maxPtLat, maxPtLong]).setContent(html);
     popup.addTo(myMap.map);
     popups.push(popup);
   }
