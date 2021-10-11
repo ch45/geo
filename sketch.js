@@ -264,7 +264,7 @@ function convertLatLong() {
     let ptHemi = table.getString(r, hemiCol);
     let ptLong = table.getString(r, longCol);
     let ptSide = table.getString(r, sideCol);
-    if (ptLat === "" && ptLong === "") {
+    if (ptLat === "" || ptLong === "") {
       if (recentSet) {
         table.set(r, latCol, recentLat);
         table.set(r, longCol, recentLong);
@@ -280,10 +280,10 @@ function convertLatLong() {
       }
       table.set(r, latCol, convertedLat);
       table.set(r, longCol, convertedLong);
+      recentLat = convertedLat;
+      recentLong = convertedLong;
       if (!recentSet) {
         recentSet = true;
-        recentLat = convertedLat;
-        recentLong = convertedLong;
       }
       if (!firstSet) {
         firstSet = true;
