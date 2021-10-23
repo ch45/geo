@@ -1,5 +1,5 @@
 if (typeof csvData === 'undefined') {
-  var csvData = 'http://' + location.hostname + ':8888/geo/data/gps_2021-09-15_Throop_Loop.csv';
+  var csvData = 'gps_2021-09-15_Throop_Loop.csv';
 }
 
 let dataTypes = [
@@ -131,8 +131,8 @@ function draw() {
 
 
 function drawTrack() {
-  let latCol = colFromName("Latitude");
-  let longCol = colFromName("Longitude");
+  let latCol = colFromName(table, "Latitude");
+  let longCol = colFromName(table, "Longitude");
   let numRows = table.getRowCount();
   let moveToMode = true;
   let moveToX;
@@ -169,10 +169,10 @@ function drawEnvironmental(colName, enviroName) {
   let maxPtTime;
   let maxPtRow;
   let data = [];
-  let latCol = colFromName("Latitude");
-  let longCol = colFromName("Longitude");
+  let latCol = colFromName(table, "Latitude");
+  let longCol = colFromName(table, "Longitude");
   let numRows = table.getRowCount();
-  let envCol = colFromName(colName);
+  let envCol = colFromName(table, colName);
   if (!envCol) {
     return;
   }
@@ -190,7 +190,7 @@ function drawEnvironmental(colName, enviroName) {
         max = ptVal;
         maxPtLat = ptLat;
         maxPtLong = ptLong;
-        maxPtTime = table.getString(r, colFromName("Time"));
+        maxPtTime = table.getString(r, colFromName(table, "Time"));
         maxPtRow = r;
       }
       if (ptVal < min) {
@@ -221,10 +221,10 @@ function removePopups() {
 }
 
 
-function colFromName(colName) {
-  let numCols = table.getColumnCount();
+function colFromName(tbl, colName) {
+  let numCols = tbl.getColumnCount();
   for (var j = 0; j < numCols; j++) {
-    if (table.columns[j].trim() === colName) {
+    if (tbl.columns[j].trim() === colName) {
       break;
     }
   }
@@ -246,30 +246,19 @@ function cbMapChanged() {
 
 
 function convertLatLong() {
-  let recentLat;
-  let recentLong;
-  let recentSet = false;
-  let firstLat;
-  let firstLong;
-  let firstGPSRow;
-  let firstSet = false;
-  let latCol = colFromName("Latitude");
+  let latCol = colFromName(table, "Latitude");
   let hemiCol = latCol + 1;
-  let longCol = colFromName("Longitude");
+  let longCol = colFromName(table, "Longitude");
   let sideCol = longCol + 1;
   let numRows = table.getRowCount();
 
+  // Convert valid locations
   for (let r = 0; r < numRows; r++) {
     let ptLat = table.getString(r, latCol);
     let ptHemi = table.getString(r, hemiCol);
     let ptLong = table.getString(r, longCol);
     let ptSide = table.getString(r, sideCol);
-    if (ptLat === "" || ptLong === "") {
-      if (recentSet) {
-        table.set(r, latCol, recentLat);
-        table.set(r, longCol, recentLong);
-      }
-    } else {
+    if (ptLat !== "" && ptLong !== "") {
       let convertedLat = Math.floor(ptLat/100) + Math.floor(ptLat % 100)/60 + (ptLat-Math.floor(ptLat))*60/3600;
       if (ptHemi === "S") {
         convertedLat = -convertedLat;
@@ -280,29 +269,103 @@ function convertLatLong() {
       }
       table.set(r, latCol, convertedLat);
       table.set(r, longCol, convertedLong);
-      recentLat = convertedLat;
-      recentLong = convertedLong;
-      if (!recentSet) {
-        recentSet = true;
-      }
-      if (!firstSet) {
-        firstSet = true;
-        firstLat = convertedLat;
-        firstLong = convertedLong;
-        firstGPSRow = r;
+    }
+  }
+  // set any missing locations
+  let firstLoc = setMissingStartLocations(table);
+  let lastLoc = setMissingEndLocations(table);
+  setMissingMiddleLocations(table, firstLoc, lastLoc);
+}
+
+
+function setMissingStartLocations(tbl) {
+  let latCol = colFromName(tbl, "Latitude");
+  let longCol = colFromName(tbl, "Longitude");
+  let firstLoc = 0;
+  let ptLat = tbl.get(firstLoc, latCol);
+  let ptLong = tbl.get(firstLoc, longCol);
+  if (ptLat === "" || ptLong === "") {
+    firstLoc = getNextGoodLocation(tbl, firstLoc);
+    if (firstLoc > 0) {
+      let ptLat = tbl.get(firstLoc, latCol);
+      let ptLong = tbl.get(firstLoc, longCol);
+      for (let j = 0; j < firstLoc; j++) {
+        tbl.set(j, latCol, ptLat);
+        tbl.set(j, longCol, ptLong);
       }
     }
   }
-  for (let r = 0; r < firstGPSRow; r++) {
-    table.set(r, latCol, firstLat);
-    table.set(r, longCol, firstLong);
+  return firstLoc;
+}
+
+
+function setMissingEndLocations(tbl) {
+  let latCol = colFromName(tbl, "Latitude");
+  let longCol = colFromName(tbl, "Longitude");
+  let numRows = tbl.getRowCount();
+  let lastLoc = numRows - 1;
+  let ptLat = tbl.get(lastLoc, latCol);
+  let ptLong = tbl.get(lastLoc, longCol);
+  if (ptLat === "" || ptLong === "") {
+    for (lastLoc--; lastLoc > 0; lastLoc--) {
+      let ptLat = tbl.get(lastLoc, latCol);
+      let ptLong = tbl.get(lastLoc, longCol);
+      if (ptLat !== "" && ptLong !== "") {
+        for (let k = lastLoc + 1; k < numRows; k++) {
+          tbl.set(k, latCol, ptLat);
+          tbl.set(k, longCol, ptLong);
+        }
+        break;
+      }
+    }
+  }
+  return lastLoc;
+}
+
+
+function setMissingMiddleLocations(tbl, firstLoc, lastLoc) {
+  let latCol = colFromName(tbl, "Latitude");
+  let longCol = colFromName(tbl, "Longitude");
+  for (let missingLoc = firstLoc + 1; missingLoc < lastLoc; missingLoc++) {
+    let ptLat = tbl.get(missingLoc, latCol);
+    let ptLong = tbl.get(missingLoc, longCol);
+    if (ptLat === "" || ptLong === "") {
+      let nextGoodRow = getNextGoodLocation(tbl, missingLoc + 1);
+      if (nextGoodRow === -1) {
+        continue;
+      }
+      let prevGoodRow = missingLoc - 1;
+      let prevLat = tbl.get(prevGoodRow, latCol);
+      let prevLong = tbl.get(prevGoodRow, longCol);
+      let nextLat = tbl.get(nextGoodRow, latCol);
+      let nextLong = tbl.get(nextGoodRow, longCol);
+      for (; missingLoc < nextGoodRow; missingLoc++) {
+        ptLat = map(missingLoc, prevGoodRow, nextGoodRow, prevLat, nextLat);
+        ptLong = map(missingLoc, prevGoodRow, nextGoodRow, prevLong, nextLong);
+        tbl.set(missingLoc, latCol, ptLat);
+        tbl.set(missingLoc, longCol, ptLong);
+      }
+    }
   }
 }
 
 
+function getNextGoodLocation(tbl, r) {
+  let latCol = colFromName(tbl, "Latitude");
+  let longCol = colFromName(tbl, "Longitude");
+  let numRows = tbl.getRowCount();
+  for (let j = r; j < numRows; j++) {
+    if (tbl.get(j, latCol) !== "" && tbl.get(j, longCol) !== "") {
+      return j;
+    }
+  }
+  return -1;
+}
+
+
 function getExtents() {
-  let latCol = colFromName("Latitude");
-  let longCol = colFromName("Longitude");
+  let latCol = colFromName(table, "Latitude");
+  let longCol = colFromName(table, "Longitude");
   let numRows = table.getRowCount();
   let leastLat = 90;
   let leastLong = 180;

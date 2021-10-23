@@ -292,5 +292,9 @@ module.exports = exports = {
     "frustum": true,
     "createCamera": true,
     "setCamera": true,
-  }
+  },
+  "rules": {
+    "dot-notation": [2, {"allowPattern": "^[a-z]+(_[a-z]+)+$"}]
+  },
+  "extends": "eslint:recommended"
 };
